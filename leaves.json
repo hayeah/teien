@@ -1,0 +1,61 @@
+{
+ "stride": 24,
+ "groups": [
+  {
+   "key": "claude",
+   "kind": "claude",
+   "far": false,
+   "count": 18534,
+   "offset": 0
+  },
+  {
+   "key": "claude_far",
+   "kind": "claude",
+   "far": true,
+   "count": 3591,
+   "offset": 444816
+  },
+  {
+   "key": "ellipse",
+   "kind": "ellipse",
+   "far": false,
+   "count": 19191,
+   "offset": 531000
+  },
+  {
+   "key": "ellipse_far",
+   "kind": "ellipse",
+   "far": true,
+   "count": 69496,
+   "offset": 991584
+  },
+  {
+   "key": "ginkgo_far",
+   "kind": "ginkgo",
+   "far": true,
+   "count": 22970,
+   "offset": 2659488
+  },
+  {
+   "key": "maple",
+   "kind": "maple",
+   "far": false,
+   "count": 28434,
+   "offset": 3210768
+  },
+  {
+   "key": "maple_far",
+   "kind": "maple",
+   "far": true,
+   "count": 3612,
+   "offset": 3893184
+  },
+  {
+   "key": "needle",
+   "kind": "needle",
+   "far": false,
+   "count": 7930,
+   "offset": 3979872
+  }
+ ]
+}
