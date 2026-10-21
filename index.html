@@ -275,7 +275,7 @@ function patchMaterial(mat, opts) {
       .replace('vec4 diffuseColor = vec4( diffuse, opacity );', `
         vec3 bp = vec3(vWPos.x, -vWPos.z, vWPos.y);          // back to Blender coordinates
         #if GRAVEL_CUT == 1
-          if (gravelSdf(bp.xy) > 0.3) discard;                // the gravel sheet, cut a little wider than the bed: it runs on under the moss lip
+          if (gravelSdf(bp.xy) > 0.04) discard;               // the gravel sheet, cut a hair wider than the bed: it tucks under the moss edge
         #elif GRAVEL_CUT == 2
           if (bp.y < 9.5 && bp.z < 0.0 && gravelSdf(bp.xy) < 0.0) discard;   // moss, opened where the gravel is
         #endif
@@ -352,7 +352,7 @@ function patchMaterial(mat, opts) {
           vec3 nb = normalize(vec3(-grad, 1.0));
           normal = normalize((viewMatrix * vec4(nb.x, nb.z, -nb.y, 0.0)).xyz);
           diffuseColor.rgb *= 1.0 + 0.15 * sin(ph) * clamp(1.4 - fwp * 0.6, 0.0, 1.0);
-          diffuseColor.rgb *= 1.0 - 0.18 * (1.0 - smoothstep(0.0, 0.07, -gravelSdf(g)));   // a little shade under the moss lip
+          diffuseColor.rgb *= 1.0 - 0.1 * (1.0 - smoothstep(0.0, 0.06, -gravelSdf(g)));   // a little shade along the moss edge
         }
         #endif`)
       .replace('#include <aomap_fragment>', `
@@ -490,7 +490,7 @@ gltf.scene.traverse((o) => {
   } else {
     m = patchMaterial(new THREE.MeshLambertMaterial({ side: name === 'shoji_paper' ? THREE.DoubleSide : THREE.FrontSide, vertexColors: !!r.vertexColor }), {
       c1: lin(r.c1), c2: lin(r.c2), ramp: r.ramp, scale: r.scale, stretch: r.stretch, tex: r.tex, wave: r.wave,
-      gravel: name === 'gravel', moss: name === 'moss', mask: name === 'foliage_core' ? 10.0 : 1.0,
+      gravel: name === 'gravel', moss: name === 'moss', mask: name === 'foliage_core' ? 10.0 : ['gravel', 'moss'].includes(name) ? 0.9 : 1.0,
       wind: ['bark', 'bark_pine', 'foliage_core'].includes(name),
     });
     if (name === 'shoji_paper') m.emissive = new THREE.Color(0.30, 0.27, 0.20); // morning light glowing through
@@ -861,6 +861,13 @@ const paintMat = new THREE.ShaderMaterial({
         vec3 a = abs(nrmAt(p + ivec2(1,0)) - nc), b = abs(nrmAt(p + ivec2(0,1)) - nc);
         float dn = max(max(max(a.x, a.y), a.z), max(max(b.x, b.y), b.z));
         eN = smoothstep(0.75, 1.1, dn);
+      }
+      // gravel meeting moss is one ground plane: no line there (it's a sub-pixel step and breaks into flickering dashes)
+      {
+        bool allGround = abs(c0.a - 0.45) < 0.02;
+        ivec2 offs[8] = ivec2[8](ivec2(-o,-o), ivec2(0,-o), ivec2(o,-o), ivec2(-o,0), ivec2(o,0), ivec2(-o,o), ivec2(0,o), ivec2(o,o));
+        for (int k = 0; k < 8; k++) allGround = allGround && abs(C(p + offs[k]).a - 0.45) < 0.02;
+        if (allGround) { eD = 0.0; eN = 0.0; }
       }
       float e = max(eD, eN);
       col = mix(col, vec3(0.231, 0.165, 0.118), 0.55 * e);
