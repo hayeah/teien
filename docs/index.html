@@ -651,7 +651,7 @@ const shishi = createShishi({ THREE, scene, camera, timeU, groundAt,
   material: (o) => patchMaterial(new THREE.MeshLambertMaterial(), o) });
 pond.pour = shishi.pour;
 // lotus, water lilies and rushes at the pond's edge
-createPondPlants({ THREE, scene, material: (o, params) => patchMaterial(new THREE.MeshLambertMaterial(params), o) });
+createPondPlants({ THREE, scene, groundAt, material: (o, params) => patchMaterial(new THREE.MeshLambertMaterial(params), o) });
 
 // ------------------------------------------------------------------ painter (post-processing)
 const pr = () => renderer.getPixelRatio();

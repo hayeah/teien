@@ -1,7 +1,7 @@
 // Plants at the pond's edge: a lotus stand, two rafts of water lily pads with a flower each, and a few clumps of
 // iris and rush along the rim. Kept to the margins: PLANT_SPOTS is also what the koi steer around (pond.js).
 //
-//   const plants = createPondPlants({ THREE, scene, material });   // material(opts, params) -> patched Lambert
+//   createPondPlants({ THREE, scene, material, groundAt });   // material(opts, params) -> patched Lambert
 //
 // Positions are Blender x/y (three.js x, -z); WY is the pond surface. Everything is static and merged into a few
 // meshes, coloured per vertex, so it costs a handful of draw calls.
@@ -13,13 +13,14 @@ const POND = [[0.0, 7.6], [1.8, 6.6], [3.8, 6.9], [5.0, 8.1], [4.6, 9.6], [2.6, 
 
 // x, y, radius (m), kind. The koi keep this far clear of each spot.
 export const PLANT_SPOTS = [
-  { x: 3.45, y: 9.8, r: 0.5, kind: 'lotus' },     // under the red maple, back right
+  { x: 2.65, y: 9.4, r: 0.5, kind: 'lotus' },     // back of the pond, toward the red maple
   { x: 1.2, y: 7.45, r: 0.42, kind: 'lily' },     // front, near the stepping stones
   { x: -1.85, y: 9.75, r: 0.36, kind: 'lily' },   // back left
-  { x: -0.55, y: 10.3, r: 0.32, kind: 'grass' },
-  { x: -3.05, y: 9.3, r: 0.32, kind: 'grass' },
-  { x: 3.05, y: 6.95, r: 0.28, kind: 'grass' },
-  { x: 4.75, y: 9.05, r: 0.28, kind: 'grass' },
+  { x: -1.3, y: 10.35, r: 0.5, kind: 'grass' },   // grass clumps settle wherever the rim is free of stones nearby
+  { x: -3.05, y: 9.4, r: 0.45, kind: 'grass' },
+  { x: 2.9, y: 6.85, r: 0.5, kind: 'grass' },
+  { x: 4.85, y: 8.9, r: 0.45, kind: 'grass' },
+  { x: 1.7, y: 10.1, r: 0.5, kind: 'grass' },
 ];
 
 function inPoly(x, y) {
@@ -41,7 +42,10 @@ function polyDist(x, y) {
   return best;
 }
 
-export function createPondPlants({ THREE, scene, material }) {
+export function createPondPlants({ THREE, scene, material, groundAt }) {
+  // rocks stand up out of the heightmap: open water sits at WY, the muddy bank a few cm above
+  const clearOfRocks = (x, y, r, top) => [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]].every(([dx, dy]) => groundAt(x + dx, y + dy) < top);
+  const openWater = (x, y, r) => inPoly(x, y) && clearOfRocks(x, y, r, WY + 0.02);
   let seed = 11;
   const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
   const between = (a, b) => a + (b - a) * rnd();
@@ -72,7 +76,7 @@ export function createPondPlants({ THREE, scene, material }) {
   // ---------------------------------------------------------------- water lilies: notched pads, one flower per raft
   const PAD = [0.05, 0.10, 0.035], PAD_OLD = [0.17, 0.12, 0.03], PAD_EDGE = [0.10, 0.04, 0.03];
   for (const spot of PLANT_SPOTS.filter((s) => s.kind === 'lily')) {
-    const pts = scatter(spot, 9, (x, y) => inPoly(x, y) && polyDist(x, y) > 0.06);
+    const pts = scatter(spot, 9, (x, y) => openWater(x, y, 0.1) && polyDist(x, y) > 0.06);
     pts.forEach(([x, y], i) => {
       const r = between(0.07, 0.13), notch = 0.28;
       const g = new THREE.CircleGeometry(r, 22, notch / 2, Math.PI * 2 - notch).rotateX(-Math.PI / 2);
@@ -103,9 +107,9 @@ export function createPondPlants({ THREE, scene, material }) {
   // ---------------------------------------------------------------- lotus: raised bowl leaves on tall stalks
   const LOTUS = [0.06, 0.13, 0.04], LOTUS_OLD = [0.22, 0.17, 0.04], LOTUS_DRY = [0.16, 0.10, 0.04];
   for (const spot of PLANT_SPOTS.filter((s) => s.kind === 'lotus')) {
-    const pts = scatter(spot, 8, (x, y) => inPoly(x, y) && polyDist(x, y) > 0.04, 0.2);
+    const pts = scatter(spot, 10, (x, y) => openWater(x, y, 0.24), 0.2);   // whole leaf over water, clear of the stones
     pts.forEach(([x, y], i) => {
-      const r = between(0.15, 0.26), h = i < 2 ? between(0.02, 0.05) : between(0.18, 0.6);   // a couple float, most stand up
+      const r = between(0.15, 0.22), h = i < 2 ? between(0.02, 0.05) : between(0.18, 0.6);   // a couple float, most stand up
       const g = new THREE.CircleGeometry(r, 28, 0, Math.PI * 2).rotateX(-Math.PI / 2);
       const pos = g.attributes.position;
       const wob = rnd() * 6;
@@ -122,11 +126,13 @@ export function createPondPlants({ THREE, scene, material }) {
         [0.10, 0.11, 0.04], at(x, y, h));
     });
     // one late flower, still in bud, and one seed head gone brown
-    const [bx, by] = [spot.x + 0.08, spot.y - 0.06], bh = 0.62;
+    const extra = scatter(spot, 2, (x, y) => openWater(x, y, 0.08) && pts.every(([px, py]) => Math.hypot(px - x, py - y) > 0.12), 0.15);
+    const [[bx, by], [sx, sy]] = extra.length === 2 ? extra : [[spot.x, spot.y], [spot.x + 0.1, spot.y - 0.1]];
+    const bh = 0.62;
     add(parts.stem, new THREE.CylinderGeometry(0.005, 0.006, bh + 0.25, 5).translate(0, -(bh + 0.25) / 2, 0), [0.10, 0.11, 0.04], at(bx, by, bh));
     const bud = new THREE.LatheGeometry([0, 0.6, 0.95, 1, 0.8, 0.45, 0].map((w, k) => new THREE.Vector2(w * 0.035, k * 0.016)), 12);
     add(parts.petal, bud, (v) => mix([0.55, 0.32, 0.30], [0.70, 0.20, 0.30], v.y / 0.096), at(bx, by, bh));
-    const [sx, sy] = [spot.x - 0.18, spot.y + 0.1], sh = 0.48;
+    const sh = 0.48;
     add(parts.stem, new THREE.CylinderGeometry(0.005, 0.006, sh + 0.25, 5).translate(0, -(sh + 0.25) / 2, 0), [0.12, 0.10, 0.04], at(sx, sy, sh));
     add(parts.leaf, new THREE.CylinderGeometry(0.045, 0.022, 0.05, 14).translate(0, 0.025, 0), [0.16, 0.11, 0.05], at(sx, sy, sh, 0, 0.3));
   }
@@ -148,8 +154,15 @@ export function createPondPlants({ THREE, scene, material }) {
     return { g, c: col };
   }
   for (const spot of PLANT_SPOTS.filter((s) => s.kind === 'grass')) {
-    const pts = scatter(spot, 5, (x, y) => polyDist(x, y) < 0.22, 0.1);
+    // only in the shallows or on the muddy bank between the rim stones, never on a rock
+    const pts = scatter(spot, 3, (x, y) => polyDist(x, y) < 0.2 && clearOfRocks(x, y, 0.14, GROUND + 0.05), 0.18);
     for (const [x, y] of pts) {
+      const wet = inPoly(x, y), base = wet ? -0.02 : groundAt(x, y) - WY + 0.004;
+      if (!wet) {   // a patch of dark mud round the clump's foot
+        const r = between(0.16, 0.24), g = new THREE.CircleGeometry(r, 16).rotateX(-Math.PI / 2), pos = g.attributes.position;
+        for (let k = 1; k < pos.count; k++) { const f = 0.8 + 0.25 * Math.sin(k * 2.3 + x * 7); pos.setX(k, pos.getX(k) * f); pos.setZ(k, pos.getZ(k) * f); }
+        add(parts.leaf, g, (v) => mix([0.05, 0.035, 0.02], [0.09, 0.07, 0.035], Math.hypot(v.x, v.z) / r), at(x, y, base, rnd() * 6.28));
+      }
       const iris = rnd() < 0.5;
       const n = iris ? 9 : 22;
       for (let k = 0; k < n; k++) {
@@ -158,7 +171,7 @@ export function createPondPlants({ THREE, scene, material }) {
         const { g, c } = blade(len, iris ? 0.04 : 0.016, between(0.1, 0.35), [[0.04, 0.09, 0.02], tipCol]);
         let vi = 0;
         add(parts.petal, g, () => c.slice((vi++) * 3, vi * 3), at(x + between(-0.04, 0.04), y + between(-0.04, 0.04),
-          inPoly(x, y) ? -0.02 : 0.05, rnd() * Math.PI * 2, 0, between(-0.12, 0.12)));
+          base, rnd() * Math.PI * 2, 0, between(-0.12, 0.12)));
       }
     }
   }
