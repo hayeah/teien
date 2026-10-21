@@ -9,7 +9,7 @@ An autumn Japanese garden, seen from the engawa of a tatami room, that you can s
 What's in the scene:
 
 - Maples, ginkgo and pines with instanced leaves that sway in the breeze and drift down
-- A koi pond with lotus, lilies and grasses, rippling water, caustics, and koi that school, wander and come to feed
+- A koi pond with lotus pads and flowers, grasses, rippling water, caustics, and koi that school, wander and come to feed
 - Raked gravel, moss, stepping stones, a stone lantern and a *shishi-odoshi* (bamboo deer scarer) with its knock
 - Paper shoji doors open on both sides, the tatami room behind you
 
@@ -50,7 +50,7 @@ docs/      the web page (mirrored to the gh-pages branch, which GitHub Pages ser
   index.html    scene setup, nihonga post-processing, controls
   pond.js       water, pond bed, caustics
   koi.js        koi models and behaviour
-  pondplants.js lotus, lilies and grasses around the pond
+  pondplants.js lotus and grasses around the pond
   shishi.js     shishi-odoshi animation and sound
   garden.glb    the garden geometry exported from Blender
   leaves.bin/.json, height.bin/.json, materials.json   leaf instances, terrain height, material recipes

@@ -209,7 +209,7 @@ for key, g in sorted(leaf_groups.items()):
     keep |= ground
     # the old gravel rectangle is part moss now: lift leaves lying there onto whichever surface they're on
     for i in np.nonzero(ground & (pos_b[:, 1] > 1.5) & (pos_b[:, 1] < 5.45) & (np.abs(pos_b[:, 0]) < 16))[0]:
-        pos_b[i, 2] = GROUND + (0.03 if gravel_sdf(pos_b[i, 0], pos_b[i, 1]) < 0 else 0.066)
+        pos_b[i, 2] = GROUND + (0.03 if gravel_sdf(pos_b[i, 0], pos_b[i, 1]) < 0 else 0.034)
     pos_b = np.where(ground[:, None], pos_b, tight)
     pos = to_yup(pos_b[keep]).astype(np.float32)
     nrm = to_yup(np.concatenate(g["nrm"])[keep])
@@ -236,8 +236,8 @@ with open(os.path.join(args.out, "leaves.json"), "w") as f:
 
 # ---------------------------------------------------------------- gravel: organic bed, raking done in the shader
 # The gravel is a coarse sheet over the outline's bounding box, cut to shape in the shader. The moss in front of
-# the engawa is one sheet too, a couple of centimetres higher and cut out where the gravel is, so the edge reads as
-# a moss lip. Further back the gravel follows the moss terrain just under it.
+# the engawa is one sheet too, a few millimetres higher and cut out where the gravel is. Further back the gravel
+# follows the moss terrain just under it.
 gr = bpy.data.objects.get("raked_gravel")
 gmat = gr.data.materials[0]
 moss_mat = bpy.data.objects["moss_ground"].data.materials[0]
@@ -271,12 +271,13 @@ def sheet(name, x0, y0, x1, y1, step, fn, mat):
 
 def gravel_z(x, y):
     hit = moss_bvh.ray_cast(Vector((x, y, 5.0)), Vector((0, 0, -1)))[0]
-    return GROUND + 0.015 if hit is None else min(GROUND + 0.015, hit.z - 0.012) if y < 5.6 else hit.z - 0.012
+    return GROUND + 0.015 if hit is None else min(GROUND + 0.015, hit.z - 0.004) if y < 5.6 else hit.z - 0.004
 
 
 sheet("raked_gravel", -8.75, 1.5, 8.5, 9.25, 0.25, gravel_z, gmat)
-sheet("moss_front", -16.0, 1.5, 16.0, 5.36, 0.12,
-      lambda x, y: GROUND + 0.035 + 0.012 * math.sin(x * 2.3 + y * 1.1) * math.sin(y * 3.1 - x * 0.7), moss_mat)
+# only a few millimetres above the gravel: a taller lip makes a depth step the painter outlines, and at a glancing
+# angle that outline breaks into flickering dashes
+sheet("moss_front", -16.0, 1.5, 16.0, 5.36, 0.12, lambda x, y: GROUND + 0.019, moss_mat)
 
 # the bamboo spout and stone basin move from the gravel to the pond as the shishi-odoshi (built by the viewer)
 for ob in list(bpy.data.objects):
