@@ -46,7 +46,7 @@ On touch screens, drag to look and use the on-screen arrow pad to walk.
 ## Layout
 
 ```
-docs/      the web page (served by GitHub Pages)
+docs/      the web page (mirrored to the gh-pages branch, which GitHub Pages serves)
   index.html    scene setup, nihonga post-processing, controls
   pond.js       water, pond bed, caustics
   koi.js        koi models and behaviour
@@ -61,3 +61,9 @@ media/     screenshots and GIFs for this README
 ```
 
 To rebuild the scene, run `build_garden.py` in Blender (it was made with Blender 5.x), then `export_realtime.py` to regenerate the files in `docs/`.
+
+To publish changes to the live page, push the `docs/` folder to the `gh-pages` branch:
+
+```sh
+git push origin $(git subtree split --prefix docs main):refs/heads/gh-pages
+```
